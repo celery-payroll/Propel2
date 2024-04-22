@@ -66,6 +66,7 @@ class ConcreteInheritanceBehavior extends Behavior
         }
 
         // Add the columns of the parent table
+        $newPrimaryKeyColumnsStore = [];
         foreach ($parentTable->getColumns() as $column) {
             if ($column->getName() == $this->getParameter('descendant_column')) {
                 continue;
@@ -79,15 +80,29 @@ class ConcreteInheritanceBehavior extends Behavior
             }
             $table->addColumn($copiedColumn);
             if ($column->isPrimaryKey() && $this->isCopyData()) {
+                //*** Store the new column for the primary key duplication logic.
+                $newPrimaryKeyColumnsStore[$column->getName()] = $copiedColumn;
+            }
+        }
+
+        if ($this->isCopyData()) {
+            //*** This logic takes care of simple and also composite primary keys.
+            $primaryKey = $parentTable->getPrimaryKey();
+            if (is_array($primaryKey) && count($primaryKey) > 0) {
                 $fk = new ForeignKey();
-                $fk->setForeignTableCommonName($column->getTable()->getCommonName());
-                if ($table->guessSchemaName() != $column->getTable()->guessSchemaName()) {
-                    $fk->setForeignSchemaName($column->getTable()->guessSchemaName());
-                }
+                $fk->setForeignTableCommonName($parentTable->getCommonName());
+                $fk->setForeignSchemaName($parentTable->getSchema());
                 $fk->setOnDelete('CASCADE');
                 $fk->setOnUpdate(null);
-                $fk->addReference($copiedColumn, $column);
                 $fk->isParentChild = true;
+
+                //*** Add a reference for each part of the priumary key, this adds support for composite keys.
+                foreach ($primaryKey as $column) {
+                    if (isset($newPrimaryKeyColumnsStore[$column->getName()])) {
+                        $fk->addReference($newPrimaryKeyColumnsStore[$column->getName()], $column);
+                    }
+                }
+
                 $table->addForeignKey($fk);
             }
         }
