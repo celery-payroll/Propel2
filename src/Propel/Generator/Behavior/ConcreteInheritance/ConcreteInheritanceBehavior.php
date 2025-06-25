@@ -66,6 +66,9 @@ class ConcreteInheritanceBehavior extends Behavior
         }
 
         // Add the columns of the parent table
+        // Celery: Collect PK columns during the loop so we can build a single foreign key
+        // that references all parts of a composite primary key (see below).
+        $newPrimaryKeyColumnsStore = [];
         foreach ($parentTable->getColumns() as $column) {
             if ($column->getName() == $this->getParameter('descendant_column')) {
                 continue;
@@ -79,15 +82,33 @@ class ConcreteInheritanceBehavior extends Behavior
             }
             $table->addColumn($copiedColumn);
             if ($column->isPrimaryKey() && $this->isCopyData()) {
+                //*** Store the new column for the primary key duplication logic.
+                $newPrimaryKeyColumnsStore[$column->getName()] = $copiedColumn;
+            }
+        }
+
+        if ($this->isCopyData()) {
+            // Celery: Replaced the original per-column FK creation with a single FK that
+            // iterates over all primary key columns. The original code created the FK inside
+            // the column loop, which only worked for single-column PKs. This version supports
+            // composite primary keys by collecting all PK columns first, then building one FK
+            // with a reference for each part.
+            $primaryKey = $parentTable->getPrimaryKey();
+            if (is_array($primaryKey) && count($primaryKey) > 0) {
                 $fk = new ForeignKey();
-                $fk->setForeignTableCommonName($column->getTable()->getCommonName());
-                if ($table->guessSchemaName() != $column->getTable()->guessSchemaName()) {
-                    $fk->setForeignSchemaName($column->getTable()->guessSchemaName());
-                }
+                $fk->setForeignTableCommonName($parentTable->getCommonName());
+                $fk->setForeignSchemaName($parentTable->getSchema());
                 $fk->setOnDelete('CASCADE');
                 $fk->setOnUpdate(null);
-                $fk->addReference($copiedColumn, $column);
                 $fk->isParentChild = true;
+
+                //*** Add a reference for each part of the priumary key, this adds support for composite keys.
+                foreach ($primaryKey as $column) {
+                    if (isset($newPrimaryKeyColumnsStore[$column->getName()])) {
+                        $fk->addReference($newPrimaryKeyColumnsStore[$column->getName()], $column);
+                    }
+                }
+
                 $table->addForeignKey($fk);
             }
         }
