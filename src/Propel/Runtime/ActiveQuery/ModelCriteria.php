@@ -2261,7 +2261,10 @@ class ModelCriteria extends BaseModelCriteria
             $prefix = (string)$this->getModelAliasOrName();
         } else {
             // $prefix could be either class name or table name
-            [$prefix, $columnName] = explode('.', $columnName);
+            $arrName = explode('.', $columnName);
+            $columnName = array_pop($arrName); // Last item of the array
+            $prefix = implode(".", $arrName);
+            //[$prefix, $columnName] = explode('.', $columnName);
         }
 
         $shortClass = static::getShortName($prefix);
