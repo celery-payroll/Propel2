@@ -2260,8 +2260,12 @@ class ModelCriteria extends BaseModelCriteria
         if (strpos($columnName, '.') === false) {
             $prefix = (string)$this->getModelAliasOrName();
         } else {
-            // $prefix could be either class name or table name
-            [$prefix, $columnName] = explode('.', $columnName);
+            // Celery: Replaced the original two-part explode (which assumed "prefix.column") with
+            // array_pop logic to support schema-qualified names like "schema.table.column".
+            // The column name is always the last segment; everything before it is the prefix.
+            $arrName = explode('.', $columnName);
+            $columnName = array_pop($arrName);
+            $prefix = implode(".", $arrName);
         }
 
         $shortClass = static::getShortName($prefix);
