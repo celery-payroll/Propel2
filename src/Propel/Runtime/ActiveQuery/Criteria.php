@@ -2253,7 +2253,10 @@ class Criteria
         }
 
         if ($stringToTransform) {
-            $parsedString .= preg_replace_callback("/[\w\\\]+\.\w+/", [$this, 'doReplaceNameInExpression'], $stringToTransform);
+            // Celery: Changed regex from "/[\w\\\]+\.\w+/" to "/[\w\\\+\.]+\w+/" to support
+            // schema-qualified column references (e.g. "schema.table.column") in expressions.
+            // The original pattern only matched a single dot between word characters.
+            $parsedString .= preg_replace_callback("/[\w\\\+\.]+\w+/", [$this, 'doReplaceNameInExpression'], $stringToTransform);
         }
 
         $sql = $parsedString;
