@@ -57,15 +57,20 @@ class TimestampableBehavior extends Behavior
         $table = $this->getTable();
 
         if ($this->withCreatedAt() && !$table->hasColumn($this->getParameter('create_column'))) {
+            // Celery: Changed from TIMESTAMP to DATETIME. TIMESTAMP columns in MySQL have
+            // automatic timezone conversion and a limited range (up to 2038), while DATETIME
+            // stores the literal value without conversion, which is what we need for explicit
+            // timezone handling via CeleryDateTimeBehavior.
             $table->addColumn([
                 'name' => $this->getParameter('create_column'),
-                'type' => 'TIMESTAMP',
+                'type' => 'DATETIME',
             ]);
         }
         if ($this->withUpdatedAt() && !$table->hasColumn($this->getParameter('update_column'))) {
+            // Celery: Changed from TIMESTAMP to DATETIME (see comment above).
             $table->addColumn([
                 'name' => $this->getParameter('update_column'),
-                'type' => 'TIMESTAMP',
+                'type' => 'DATETIME',
             ]);
         }
     }
