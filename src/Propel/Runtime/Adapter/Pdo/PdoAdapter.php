@@ -8,6 +8,7 @@
 
 namespace Propel\Runtime\Adapter\Pdo;
 
+use DateTimeZone;
 use PDO;
 use PDOException;
 use Propel\Generator\Model\PropelTypes;
@@ -326,7 +327,7 @@ abstract class PdoAdapter
     public function formatTemporalValue($value, ColumnMap $cMap): string
     {
         /** @var \Propel\Runtime\Util\PropelDateTime|null $dt */
-        $dt = PropelDateTime::newInstance($value);
+        $dt = PropelDateTime::newInstance($value, new DateTimeZone('America/Curacao'));
         if ($dt) {
             switch ($cMap->getType()) {
                 case PropelTypes::TIMESTAMP:

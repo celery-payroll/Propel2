@@ -132,7 +132,8 @@ class PropelDateTime extends DateTime
     public static function newInstance($value, ?DateTimeZone $timeZone = null, string $dateTimeClass = 'DateTime')
     {
         if ($value instanceof DateTimeInterface) {
-            return $value;
+            $objDateTime = clone $value;
+            return $objDateTime->setTimezone(new \DateTimeZone("America/Curacao"));
         }
         if ($value === false || $value === null || $value === '') {
             // '' is seen as NULL for temporal objects
@@ -169,14 +170,14 @@ class PropelDateTime extends DateTime
                 $format = 'U.u';
             }
 
-            $dateTimeObject = DateTime::createFromFormat($format, $value, new DateTimeZone('UTC'));
+            $dateTimeObject = DateTime::createFromFormat($format, $value, new DateTimeZone('America/Curacao'));
             if ($dateTimeObject === false) {
                 throw new Exception(sprintf('Cannot create DateTime from format `%s`', $format));
             }
 
             // timezone must be explicitly specified and then changed
             // because of a DateTime bug: http://bugs.php.net/bug.php?id=43003
-            $dateTimeObject->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+            $dateTimeObject->setTimeZone(new DateTimeZone('America/Curacao'));
         } else {
             if ($timeZone === null) {
                 // stupid DateTime constructor signature
