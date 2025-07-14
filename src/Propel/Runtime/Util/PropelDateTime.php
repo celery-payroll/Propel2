@@ -132,7 +132,11 @@ class PropelDateTime extends DateTime
     public static function newInstance($value, ?DateTimeZone $timeZone = null, string $dateTimeClass = 'DateTime')
     {
         if ($value instanceof DateTimeInterface) {
-            return $value;
+            // Celery: Clone and normalize to America/Curacao instead of returning the original
+            // object. This ensures all DateTimeInterface values entering the ORM are converted
+            // to the application's canonical timezone before storage.
+            $objDateTime = clone $value;
+            return $objDateTime->setTimezone(new \DateTimeZone("America/Curacao"));
         }
         if ($value === false || $value === null || $value === '') {
             // '' is seen as NULL for temporal objects
@@ -169,14 +173,17 @@ class PropelDateTime extends DateTime
                 $format = 'U.u';
             }
 
-            $dateTimeObject = DateTime::createFromFormat($format, $value, new DateTimeZone('UTC'));
+            // Celery: Changed from UTC to America/Curacao for both createFromFormat and
+            // setTimeZone. Timestamps are interpreted and stored in the application's
+            // canonical timezone rather than UTC.
+            $dateTimeObject = DateTime::createFromFormat($format, $value, new DateTimeZone('America/Curacao'));
             if ($dateTimeObject === false) {
                 throw new Exception(sprintf('Cannot create DateTime from format `%s`', $format));
             }
 
             // timezone must be explicitly specified and then changed
             // because of a DateTime bug: http://bugs.php.net/bug.php?id=43003
-            $dateTimeObject->setTimeZone(new DateTimeZone(date_default_timezone_get()));
+            $dateTimeObject->setTimeZone(new DateTimeZone('America/Curacao'));
         } else {
             if ($timeZone === null) {
                 // stupid DateTime constructor signature
