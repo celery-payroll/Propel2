@@ -475,7 +475,7 @@ class PropelTypes
         self::BOOLEAN_EMU => PDO::PARAM_INT,
         self::OBJECT => PDO::PARAM_LOB,
         self::PHP_ARRAY => PDO::PARAM_STR,
-        self::ENUM => PDO::PARAM_INT,
+        self::ENUM => PDO::PARAM_STR,
         self::SET => PDO::PARAM_INT,
         self::GEOMETRY => PDO::PARAM_LOB,
 
