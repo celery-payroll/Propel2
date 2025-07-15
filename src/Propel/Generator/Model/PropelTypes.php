@@ -234,6 +234,9 @@ class PropelTypes
     /**
      * @var string
      */
+    // Celery: Changed from 'string' to 'int'. Propel defaults to string for BIGINT to avoid
+    // overflow on 32-bit systems, but our environment is 64-bit only, so native int is safe
+    // and avoids unnecessary string-to-int conversions throughout the application.
     public const BIGINT_NATIVE_TYPE = 'int';
 
     /**
@@ -475,7 +478,10 @@ class PropelTypes
         self::BOOLEAN_EMU => PDO::PARAM_INT,
         self::OBJECT => PDO::PARAM_LOB,
         self::PHP_ARRAY => PDO::PARAM_STR,
-        self::ENUM => PDO::PARAM_INT,
+        // Celery: Changed from PDO::PARAM_INT to PDO::PARAM_STR. Propel's default ENUM handling
+        // stores the positional index (int) of the value. With CeleryEnumBehavior, ENUMs are
+        // stored as their actual string values, so the PDO binding must use PARAM_STR.
+        self::ENUM => PDO::PARAM_STR,
         self::SET => PDO::PARAM_INT,
         self::GEOMETRY => PDO::PARAM_LOB,
 
