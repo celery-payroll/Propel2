@@ -43,7 +43,9 @@ class CeleryDateTimeBehavior extends Behavior
     {
         $columnName = $column->getName();
         $phpName = $column->getPhpName();
-        $isDate = $column->getType() === PropelTypes::DATE;
+        $columnType = $column->getType();
+        $isDate = $columnType === PropelTypes::DATE;
+        $isTime = $columnType === PropelTypes::TIME;
 
         if ($isDate) {
             $comment = "Custom Date getter for {$columnName} (no timezone conversion)";
@@ -55,12 +57,16 @@ class CeleryDateTimeBehavior extends Behavior
             $errorMsg = 'datetime';
         }
 
+        //*** TIME columns must default to 'H:i:s' to match their type.
+        //*** Using 'Y-m-d' strips the time component entirely and returns today's date.
+        $defaultFormat = $isTime ? "'H:i:s'" : "'Y-m-d'";
+
         return <<<PHP
 
     /**
      * {$comment}
      */
-    public function get{$phpName}(?string \$format = 'Y-m-d')
+    public function get{$phpName}(?string \$format = {$defaultFormat})
     {
         if (\$this->{$columnName} === null) {
             return null;
