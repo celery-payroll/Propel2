@@ -12,10 +12,11 @@ use Propel\Generator\Util\PhpParser;
  *
  * Key differences from default Propel temporal handling:
  * - DATE columns skip timezone conversion entirely (dates are timezone-agnostic).
+ * - TIME columns skip timezone conversion entirely (dates are timezone-agnostic).
  * - DATETIME/TIMESTAMP columns are stored and interpreted in America/Curacao timezone.
  * - Getters support a 'carbon' format string to return a Carbon instance.
  * - Getters reject strftime-style '%' formats (only PHP date() formats allowed).
- * - '0000-00-00' values are treated as null.
+ * - '0000-00-00' and '0000-00-00 00:00:00' values are treated as null.
  */
 class CeleryDateTimeBehavior extends Behavior
 {
@@ -50,16 +51,22 @@ class CeleryDateTimeBehavior extends Behavior
         if ($isDate) {
             $comment = "Custom Date getter for {$columnName} (no timezone conversion)";
             $timezoneCode = '';
+            $columnNullValue = "'0000-00-00'";
+            $defaultFormat = "'Y-m-d'";
             $errorMsg = 'date';
+        } elseif ($isTime) {
+            $comment = "Custom Time getter for {$columnName} (no timezone conversion)";
+            $timezoneCode = '';
+            $columnNullValue = "'0000-00-00 00:00:00'";
+            $defaultFormat = "'H:i:s'";
+            $errorMsg = 'time';
         } else {
             $comment = "Custom DateTime getter for {$columnName}";
             $timezoneCode = "\n            \$dt->setTimeZone(new \\DateTimeZone(date_default_timezone_get()));";
+            $columnNullValue = "'0000-00-00 00:00:00'";
+            $defaultFormat = "'Y-m-d H:i:s'";
             $errorMsg = 'datetime';
         }
-
-        //*** TIME columns must default to 'H:i:s' to match their type.
-        //*** Using 'Y-m-d' strips the time component entirely and returns today's date.
-        $defaultFormat = $isTime ? "'H:i:s'" : "'Y-m-d'";
 
         return <<<PHP
 
@@ -72,7 +79,8 @@ class CeleryDateTimeBehavior extends Behavior
             return null;
         }
 
-        if (\$this->{$columnName} === '0000-00-00') {
+        if (\$this->{$columnName} === {$columnNullValue}) {
+            // Treat the database zero-sentinel as null — the column has no meaningful value.
             return null;
         }
 
@@ -90,7 +98,7 @@ class CeleryDateTimeBehavior extends Behavior
             try {
                 return new \Carbon\Carbon(\$dt);
             } catch (\Exception \$x) {
-                throw new \Propel\Runtime\Exception\PropelException("Carbon conversion failed.");
+                throw new \Propel\Runtime\Exception\PropelException("Carbon conversion failed.", 0, \$x);
             }
         }
 
@@ -130,15 +138,26 @@ PHP;
         $clo = $column->getLowercasedName();
         $orNull = $column->isNotNull() ? '' : '|null';
         $columnName = $column->getName();
+        $columnType = $column->getType();
         $phpName = $column->getPhpName();
         $format = $this->getFormat($column);
-        $isDate = $column->getType() === PropelTypes::DATE;
+        $isDate = $columnType === PropelTypes::DATE;
+        $isTime = $columnType === PropelTypes::TIME;
 
         if ($isDate) {
             $comment = "Sets the value of [$clo] column to a normalized version of the date value specified (no timezone conversion).";
             $dateTimeConversion = <<<'PHP'
         if ($v instanceof \DateTimeInterface) {
             $v = $v->format('Y-m-d');
+        }
+
+PHP;
+            $timezoneArg = 'null';
+        } elseif ($isTime) {
+            $comment = "Sets the value of [$clo] column to a normalized version of the time value specified (no timezone conversion).";
+            $dateTimeConversion = <<<'PHP'
+        if ($v instanceof \DateTimeInterface) {
+            $v = $v->format('H:i:s.u');
         }
 
 PHP;
