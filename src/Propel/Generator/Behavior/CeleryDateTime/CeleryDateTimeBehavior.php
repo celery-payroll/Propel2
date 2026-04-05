@@ -12,11 +12,11 @@ use Propel\Generator\Util\PhpParser;
  *
  * Key differences from default Propel temporal handling:
  * - DATE columns skip timezone conversion entirely (dates are timezone-agnostic).
- * - TIME columns skip timezone conversion entirely (dates are timezone-agnostic).
+ * - TIME columns skip timezone conversion entirely (stand-alone times are timezone-agnostic).
  * - DATETIME/TIMESTAMP columns are stored and interpreted in America/Curacao timezone.
  * - Getters support a 'carbon' format string to return a Carbon instance.
  * - Getters reject strftime-style '%' formats (only PHP date() formats allowed).
- * - '0000-00-00' and '0000-00-00 00:00:00' values are treated as null.
+ * - '0000-00-00' (DATE) and '0000-00-00 00:00:00' (DATETIME, TIMESTAMP) values are treated as null.
  */
 class CeleryDateTimeBehavior extends Behavior
 {
