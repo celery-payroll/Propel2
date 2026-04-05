@@ -57,7 +57,7 @@ class CeleryDateTimeBehavior extends Behavior
         } elseif ($isTime) {
             $comment = "Custom Time getter for {$columnName} (no timezone conversion)";
             $timezoneCode = '';
-            $columnNullValue = "'0000-00-00 00:00:00'";
+            $columnNullValue = "null";
             $defaultFormat = "'H:i:s'";
             $errorMsg = 'time';
         } else {
@@ -98,7 +98,7 @@ class CeleryDateTimeBehavior extends Behavior
             try {
                 return new \Carbon\Carbon(\$dt);
             } catch (\Exception \$x) {
-                throw new \Propel\Runtime\Exception\PropelException("Carbon conversion failed.", 0, \$x);
+                throw new \Propel\Runtime\Exception\PropelException("Carbon conversion failed for: " . var_export(\$this->{$columnName}, true), 0, \$x);
             }
         }
 
