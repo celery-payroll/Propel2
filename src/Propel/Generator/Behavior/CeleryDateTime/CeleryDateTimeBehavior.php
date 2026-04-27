@@ -50,19 +50,19 @@ class CeleryDateTimeBehavior extends Behavior
 
         if ($isDate) {
             $comment = "Custom Date getter for {$columnName} (no timezone conversion)";
-            $timezoneCode = '';
+            $timezoneConversion = "\$dt = clone \$this->{$columnName};";
             $columnNullValue = "'0000-00-00'";
             $defaultFormat = "'Y-m-d'";
             $errorMsg = 'date';
         } elseif ($isTime) {
             $comment = "Custom Time getter for {$columnName} (no timezone conversion)";
-            $timezoneCode = '';
+            $timezoneConversion = "\$dt = clone \$this->{$columnName};";
             $columnNullValue = "null";
             $defaultFormat = "'H:i:s'";
             $errorMsg = 'time';
         } else {
             $comment = "Custom DateTime getter for {$columnName}";
-            $timezoneCode = "\n            \$dt->setTimeZone(new \\DateTimeZone(date_default_timezone_get()));";
+            $timezoneConversion = "\$dt = new \DateTime((\$this->{$columnName}->format('Y-m-d H:i:s')), new \DateTimeZone('America/Curacao'));\n            \$dt->setTimeZone(new \\DateTimeZone(date_default_timezone_get()));";
             $columnNullValue = "'0000-00-00 00:00:00'";
             $defaultFormat = "'Y-m-d H:i:s'";
             $errorMsg = 'datetime';
@@ -85,7 +85,7 @@ class CeleryDateTimeBehavior extends Behavior
         }
 
         try {
-            \$dt = clone \$this->{$columnName};{$timezoneCode}
+            {$timezoneConversion}
         } catch (\Exception \$x) {
             throw new \Propel\Runtime\Exception\PropelException("Could not convert internal {$errorMsg} value: " . var_export(\$this->{$columnName}, true), 0, \$x);
         }
