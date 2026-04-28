@@ -164,12 +164,12 @@ PHP;
             $timezoneArg = 'null';
         } else {
             $comment = "Sets the value of [$clo] column to a normalized version of the date/time value specified.";
+            // Anchor naive strings to the runtime timezone so the Curacao conversion below shifts the wall-clock
+            // from the runtime timezone to America/Curacao. Without this wrap, strings would be treated as
+            // already-Curacao time. Numeric Unix timestamps bypass this branch inside PropelDateTime::newInstance()
+            // and anchor directly to Curacao — correct, since timestamps are timezone-agnostic.
             $dateTimeConversion = <<<'PHP'
-/**
-         * Convert a string or integer value to the local timezone for a correct conversion to database (Curacao) time.
-         * Clone any DateTimeInterface values to prevent internal manipulation of the original value.
-         */
-        if (!$v instanceof \DateTimeInterface) {
+if (!$v instanceof \DateTimeInterface) {
             $v = PropelDateTime::newInstance($v, new \DateTimeZone(date_default_timezone_get()), 'DateTime');
         }
 
@@ -186,8 +186,7 @@ PHP;
      * @param string|integer|\DateTimeInterface{$orNull} \$v string, integer (timestamp), or \DateTimeInterface value.
      *               Empty strings are treated as NULL.
      * @return \$this The current object (for fluent API support)
-     * @throws PropelException
-     * @throws \DateInvalidTimeZoneException
+     * @throws \Propel\Runtime\Exception\PropelException
      */
     public function set{$phpName}(\$v)
     {
