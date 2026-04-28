@@ -147,7 +147,7 @@ PHP;
         if ($isDate) {
             $comment = "Sets the value of [$clo] column to a normalized version of the date value specified (no timezone conversion).";
             $dateTimeConversion = <<<'PHP'
-        if ($v instanceof \DateTimeInterface) {
+if ($v instanceof \DateTimeInterface) {
             $v = $v->format('Y-m-d');
         }
 
@@ -156,7 +156,7 @@ PHP;
         } elseif ($isTime) {
             $comment = "Sets the value of [$clo] column to a normalized version of the time value specified (no timezone conversion).";
             $dateTimeConversion = <<<'PHP'
-        if ($v instanceof \DateTimeInterface) {
+if ($v instanceof \DateTimeInterface) {
             $v = $v->format('H:i:s.u');
         }
 
@@ -164,7 +164,16 @@ PHP;
             $timezoneArg = 'null';
         } else {
             $comment = "Sets the value of [$clo] column to a normalized version of the date/time value specified.";
-            $dateTimeConversion = '';
+            $dateTimeConversion = <<<'PHP'
+/**
+         * Convert a string or integer value to the local timezone for a correct conversion to database (Curacao) time.
+         * Clone any DateTimeInterface values to prevent internal manipulation of the original value.
+         */
+        if (!$v instanceof \DateTimeInterface) {
+            $v = PropelDateTime::newInstance($v, new \DateTimeZone(date_default_timezone_get()), 'DateTime');
+        }
+
+PHP;
             $timezoneArg = "new \\DateTimeZone('America/Curacao')";
         }
 
@@ -177,10 +186,13 @@ PHP;
      * @param string|integer|\DateTimeInterface{$orNull} \$v string, integer (timestamp), or \DateTimeInterface value.
      *               Empty strings are treated as NULL.
      * @return \$this The current object (for fluent API support)
+     * @throws PropelException
+     * @throws \DateInvalidTimeZoneException
      */
     public function set{$phpName}(\$v)
     {
-        {$dateTimeConversion}\$dt = PropelDateTime::newInstance(\$v, {$timezoneArg}, 'DateTime');
+        {$dateTimeConversion}
+        \$dt = PropelDateTime::newInstance(\$v, {$timezoneArg}, 'DateTime');
         if (\$this->{$columnName} !== null || \$dt !== null) {
             if (\$this->{$columnName} === null || \$dt === null || \$dt->format("{$format}") !== \$this->{$columnName}->format("{$format}")) {
                 \$this->{$columnName} = \$dt === null ? null : clone \$dt;
