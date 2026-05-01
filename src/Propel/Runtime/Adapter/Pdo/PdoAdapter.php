@@ -326,12 +326,27 @@ abstract class PdoAdapter
      */
     public function formatTemporalValue($value, ColumnMap $cMap): string
     {
+        $columnType = $cMap->getType();
+
+        // Celery: DATE and TIME columns are timezone-agnostic per CeleryDateTimeBehavior.
+        // Format an existing DateTime in its source timezone — converting to America/Curacao
+        // here would shift the wall-clock across a day boundary for callers running in a
+        // timezone east of Curacao (e.g. Europe/Amsterdam), producing a date one day earlier.
+        if ($value instanceof \DateTimeInterface) {
+            if ($columnType === PropelTypes::DATE || $columnType === PropelTypes::BU_DATE) {
+                return $value->format($this->getDateFormatter());
+            }
+            if ($columnType === PropelTypes::TIME) {
+                return $value->format($this->getTimeFormatter());
+            }
+        }
+
         /** @var \Propel\Runtime\Util\PropelDateTime|null $dt */
         // Celery: Hardcode America/Curacao timezone so temporal values in query bindings are
         // interpreted consistently, matching the timezone used in PropelDateTime::newInstance().
         $dt = PropelDateTime::newInstance($value, new DateTimeZone('America/Curacao'));
         if ($dt) {
-            switch ($cMap->getType()) {
+            switch ($columnType) {
                 case PropelTypes::TIMESTAMP:
                 case PropelTypes::BU_TIMESTAMP:
                 case PropelTypes::DATETIME:
